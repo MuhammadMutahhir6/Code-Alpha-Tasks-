@@ -1,0 +1,73 @@
+#include <iostream>
+#include <vector>
+#include <iomanip>
+
+using namespace std;
+
+double convertGradeToPoints(char grade) {
+    switch(toupper(grade)) {
+        case 'A': return 4.0;
+        case 'B': return 3.0;
+        case 'C': return 2.0;
+        case 'D': return 1.0;
+        case 'F': return 0.0;
+        default:  return -1.0;
+    }
+}
+
+int main() {
+    int numCourses;
+    cout << "Enter number of courses: ";
+    cin >> numCourses;
+
+    vector<int> credits;
+    vector<char> grades;
+    vector<double> gradePoints;
+
+    for (int i = 0; i < numCourses; ++i) {
+        int credit;
+        char grade;
+
+        cout << "\nCourse " << i+1 << ":\n";
+        cout << "Enter credit hours: ";
+        cin >> credit;
+        cout << "Enter grade (A/B/C/D/F): ";
+        cin >> grade;
+
+        double gp = convertGradeToPoints(grade);
+        if (gp < 0) {
+            cout << "Invalid grade entered. Exiting program.\n";
+            return 1;
+        }
+
+        credits.push_back(credit);
+        grades.push_back(toupper(grade));
+        gradePoints.push_back(gp);
+    }
+
+    int totalCredits = 0;
+    double totalGradePoints = 0.0;
+
+    cout << "\n\nCourse-wise Results:";
+    cout << "\n-------------------------------------------------\n";
+    for (int i = 0; i < numCourses; ++i) {
+        double coursePoints = credits[i] * gradePoints[i];
+        totalCredits += credits[i];
+        totalGradePoints += coursePoints;
+
+        cout << "Course " << i+1 << " | Credits: " << credits[i] 
+             << " | Grade: " << grades[i] 
+             << " | Grade Points: " << coursePoints << endl;
+    }
+
+    double cgpa = totalGradePoints / totalCredits;
+
+    cout << "\nFinal Results:";
+    cout << "\n-------------------------------------------------";
+    cout << "\nTotal Credits Completed: " << totalCredits;
+    cout << "\nTotal Grade Points Earned: " << totalGradePoints;
+    cout << fixed << setprecision(2);
+    cout << "\nCGPA: " << cgpa << endl;
+
+    return 0;
+}
