@@ -1,0 +1,276 @@
+#include <iostream>
+#include <vector>
+#include <ctime>
+#include <iomanip>
+#include <algorithm>
+
+using namespace std;
+
+class Transaction {
+private:
+    string type;
+    double amount;
+    string date;
+    string fromAccount;
+    string toAccount;
+
+public:
+    Transaction(string t, double a, string f, string to = "") 
+        : type(t), amount(a), fromAccount(f), toAccount(to) {
+        time_t now = time(0);
+        date = ctime(&now);
+    }
+
+    void display() const {
+        cout << left << setw(20) << date.substr(0, 19)
+             << setw(15) << type
+             << setw(15) << amount
+             << setw(20) << fromAccount
+             << toAccount << endl;
+    }
+};
+
+class Account {
+private:
+    string accountNumber;
+    string type;
+    double balance;
+    string customerId;
+    vector<Transaction> transactions;
+
+public:
+    Account(string num, string t, string custId) 
+        : accountNumber(num), type(t), balance(0), customerId(custId) {}
+
+    string getNumber() const { return accountNumber; }
+    string getCustomerId() const { return customerId; }
+    double getBalance() const { return balance; }
+
+    void deposit(double amount) {
+        balance += amount;
+        transactions.emplace_back("Deposit", amount, accountNumber);
+    }
+
+    bool withdraw(double amount) {
+        if (balance >= amount) {
+            balance -= amount;
+            transactions.emplace_back("Withdrawal", amount, accountNumber);
+            return true;
+        }
+        return false;
+    }
+
+    void transfer(Account &toAccount, double amount) {
+        if (withdraw(amount)) {
+            toAccount.deposit(amount);
+            transactions.emplace_back("Transfer", amount, accountNumber, toAccount.getNumber());
+        }
+    }
+
+    void displayTransactions() const {
+        cout << "\nTransaction History for Account: " << accountNumber << endl;
+        cout << left << setw(20) << "Date/Time"
+             << setw(15) << "Type"
+             << setw(15) << "Amount"
+             << setw(20) << "From Account"
+             << "To Account" << endl;
+
+        for (const auto& t : transactions) {
+            t.display();
+        }
+    }
+};
+
+class Customer {
+private:
+    string id;
+    string name;
+    string address;
+    string phone;
+    vector<Account> accounts;
+
+public:
+    Customer(string i, string n, string a, string p)
+        : id(i), name(n), address(a), phone(p) {}
+
+    string getId() const { return id; }
+    string getName() const { return name; }
+
+    void createAccount(string accNumber, string type) {
+        accounts.emplace_back(accNumber, type, id);
+    }
+
+    Account* getAccount(string accNumber) {
+        for (auto& acc : accounts) {
+            if (acc.getNumber() == accNumber) {
+                return &acc;
+            }
+        }
+        return nullptr;
+    }
+
+    void displayAccounts() const {
+        cout << "\nAccounts for Customer: " << name << endl;
+        cout << left << setw(20) << "Account Number"
+             << setw(15) << "Type"
+             << setw(15) << "Balance" << endl;
+
+        for (const auto& acc : accounts) {
+            cout << setw(20) << acc.getNumber()
+                 << setw(15) << acc.getType()
+                 << "$" << fixed << setprecision(2) << acc.getBalance() << endl;
+        }
+    }
+};
+
+class BankingService {
+private:
+    vector<Customer> customers;
+    vector<Account> allAccounts;
+
+public:
+    Customer* findCustomer(const string& custId) {
+        for (auto& cust : customers) {
+            if (cust.getId() == custId) {
+                return &cust;
+            }
+        }
+        return nullptr;
+    }
+
+    Account* findAccount(const string& accNumber) {
+        for (auto& acc : allAccounts) {
+            if (acc.getNumber() == accNumber) {
+                return &acc;
+            }
+        }
+        return nullptr;
+    }
+
+    void createCustomer(string id, string name, string address, string phone) {
+        customers.emplace_back(id, name, address, phone);
+    }
+
+    void createAccount(string custId, string accNumber, string type) {
+        Customer* cust = findCustomer(custId);
+        if (cust) {
+            cust->createAccount(accNumber, type);
+            allAccounts.emplace_back(accNumber, type, custId);
+        }
+    }
+
+    void performTransaction(string accNumber, string type, double amount) {
+        Account* acc = findAccount(accNumber);
+        if (acc) {
+            if (type == "Deposit") {
+                acc->deposit(amount);
+            } else if (type == "Withdrawal") {
+                if (!acc->withdraw(amount)) {
+                    cout << "Insufficient funds!" << endl;
+                }
+            }
+        }
+    }
+
+    void transferFunds(string fromAcc, string toAcc, double amount) {
+        Account* source = findAccount(fromAcc);
+        Account* dest = findAccount(toAcc);
+        
+        if (source && dest) {
+            source->transfer(*dest, amount);
+        }
+    }
+};
+
+// Menu system
+void displayMainMenu() {
+    cout << "\nBanking System Menu\n";
+    cout << "1. Create New Customer\n";
+    cout << "2. Open New Account\n";
+    cout << "3. Deposit\n";
+    cout << "4. Withdraw\n";
+    cout << "5. Transfer Funds\n";
+    cout << "6. View Account Information\n";
+    cout << "7. Exit\n";
+    cout << "Enter choice: ";
+}
+
+int main() {
+    BankingService bank;
+    int choice;
+    string custId, name, address, phone, accNumber, accType, fromAcc, toAcc;
+    double amount;
+
+    do {
+        displayMainMenu();
+        cin >> choice;
+        cin.ignore();
+
+        switch(choice) {
+            case 1: {
+                cout << "Enter Customer ID: ";
+                getline(cin, custId);
+                cout << "Enter Name: ";
+                getline(cin, name);
+                cout << "Enter Address: ";
+                getline(cin, address);
+                cout << "Enter Phone: ";
+                getline(cin, phone);
+                bank.createCustomer(custId, name, address, phone);
+                break;
+            }
+            case 2: {
+                cout << "Enter Customer ID: ";
+                getline(cin, custId);
+                cout << "Enter Account Number: ";
+                getline(cin, accNumber);
+                cout << "Enter Account Type (Savings/Checking): ";
+                getline(cin, accType);
+                bank.createAccount(custId, accNumber, accType);
+                break;
+            }
+            case 3: {
+                cout << "Enter Account Number: ";
+                getline(cin, accNumber);
+                cout << "Enter Deposit Amount: ";
+                cin >> amount;
+                bank.performTransaction(accNumber, "Deposit", amount);
+                break;
+            }
+            case 4: {
+                cout << "Enter Account Number: ";
+                getline(cin, accNumber);
+                cout << "Enter Withdrawal Amount: ";
+                cin >> amount;
+                bank.performTransaction(accNumber, "Withdrawal", amount);
+                break;
+            }
+            case 5: {
+                cout << "Enter Source Account: ";
+                getline(cin, fromAcc);
+                cout << "Enter Destination Account: ";
+                getline(cin, toAcc);
+                cout << "Enter Transfer Amount: ";
+                cin >> amount;
+                bank.transferFunds(fromAcc, toAcc, amount);
+                break;
+            }
+            case 6: {
+                cout << "Enter Customer ID: ";
+                getline(cin, custId);
+                Customer* cust = bank.findCustomer(custId);
+                if (cust) {
+                    cust->displayAccounts();
+                }
+                break;
+            }
+            case 7:
+                cout << "Exiting system...\n";
+                break;
+            default:
+                cout << "Invalid choice!\n";
+        }
+    } while (choice != 7);
+
+    return 0;
+}
